@@ -10,7 +10,7 @@ const nextId = require("../utils/nextId");
 
 function dishExists (req, res, next) {
     const {dishId} = req.params;
-    const foundDish = dishes.find((dish) => dish.id === Number(dishId));
+    const foundDish = dishes.find((dish) => dish.id === dishId);
 
     if (foundDish) {
         res.locals.dish = foundDish;
@@ -38,23 +38,18 @@ function read (req, res, next) {
 };
 
 function update (req, res, next) {
-    const dish = res.locals.dish;
     const {dishId} = req.params;
     const { data: {name, description, price, image_url} = {}} = req.body;
 
-    dish = {
+    res.locals.dish = {
         id: res.locals.dishId,
-        name: name,
+        name:  name,
         description: description,
         price: price,
         image_url: image_url,
     };
-
-    if (dish !== Number(dishId)) {
-        res.sendStatus(404);
-    } else {
-        res.json({ data: dish });
-    }
+ 
+    res.json({data: res.locals.dish});
 };
 
 function list (req, res, next) {
@@ -86,7 +81,7 @@ function idValidation (req, res, next) {
     const {dishId} = req.params;
     const { data: {id} = {}} = req.body;
 
-    if (!id || id === Number(dishId)) {
+    if (!id || id === dishId) {
         res.locals.dishId = dishId;
         return next();
     } else {

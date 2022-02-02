@@ -68,7 +68,7 @@ function updateValidation (req, res, next) {
     const {orderId} = req.params;
     const {data: {id, deliverTo, mobileNumber, status, dishes} = {}} = req.body;
 
-    if (id !== Number(orderId)) {
+    if (id !== orderId) {
         return next({ status: 404, message: `Order id does not match route id. Order: ${id}, Route: ${orderId}.`});
     }
     if (!status || status == "") {
@@ -83,14 +83,14 @@ function update (req, res, next) {
     const {orderId} = req.params;
     const {data: {deliverTo, mobileNumber, status, dishes} = {}} = req.body;
     
-    const orderUpdate = {
-        id: orderId,
+    res.locals.order = {
+        id: res.locals.orderId,
         deliverTo: deliverTo,
         mobileNumber: mobileNumber,
         status: status,
         dishes: dishes,
     };
-    res.json({data: orderUpdate});
+    res.json({data: res.locals.order});
 };
 
 function list (req, res, next) {
@@ -100,9 +100,10 @@ function list (req, res, next) {
 function destroy (req, res, next) {
     const {orderId} = req.params;
     const index = orders.findIndex((order) => order.id === Number(orderId));
+    console.log(index)
 
     orders.splice(index, 1);
-    res.sendStatus(201);
+    res.sendStatus(204);
 };
 
 function destroyValidation (req, res, next) {
