@@ -11,16 +11,16 @@ const nextId = require("../utils/nextId");
 function orderValidation (req, res, next) {
     const { data: {deliverTo, mobileNumber, status, dishes} = {}} = req.body;
 
-    if (!deliverTo || deliverTo == "") {
+    if (!deliverTo || deliverTo === "") {
         return next({ status: 400, message: "Order must include a deliverTo"});
     }
-    if (!mobileNumber || mobileNumber == "") {
+    if (!mobileNumber || mobileNumber === "") {
         return next({ status: 400, message: "Order must include a mobileNumber"});
     }
     if (!dishes) {
         return next({ status: 400, message: "Order must include a dish"});
     }
-    if (!Array.isArray(dishes) || dishes.length == 0) {
+    if (!Array.isArray(dishes) || dishes.length === 0) {
         return next({ status: 400, message: "Order must include at least one dish"});
     }
     dishes.map((dish, index) => {
@@ -29,8 +29,10 @@ function orderValidation (req, res, next) {
         };
     });
     res.locals.order = req.body.data;
+    if (!res.locals.order.id) {
+        res.locals.order.id = req.params.orderId;
+    };
     next();
-
 }
 
 function create (req, res, next) {
@@ -45,16 +47,15 @@ function create (req, res, next) {
     };
     orders.push(newOrder);
     res.status(201).json({ data: newOrder});
-
 };
 
 function orderExists (req, res, next) {
     const { orderId} = req.params;
-    const foundOrder = orders.find((order) => order.id === Number(orderId));
+    const foundOrder = orders.find((order) => order.id === orderId);
 
     if (foundOrder) {
         res.locals.order = foundOrder;
-        return next ();
+        return next();
     } else {
         return next({ status: 404, message: `Order id not does not exist ${orderId}`});
     }
@@ -66,25 +67,27 @@ function read (req, res, next) {
 
 function updateValidation (req, res, next) {
     const {orderId} = req.params;
-    const {data: {id, deliverTo, mobileNumber, status, dishes} = {}} = req.body;
+    const {data: {id, status,} = {}} = req.body;
 
-    if (id !== orderId) {
-        return next({ status: 404, message: `Order id does not match route id. Order: ${id}, Route: ${orderId}.`});
+    if (id !== undefined && id !== null && id !== "" && id !== orderId) {
+        return next({ status: 400, message: `Order id does not match route id. Order: ${id}, Route: ${orderId}.`});
     }
-    if (!status || status == "") {
-        return next({status: 404, message: "Order must have a status of pending, preparing, out-for-delivery, delivered"});
+    if (!status || status == "" || (status !== "pending" && status !== "preparing" && status !== "out-for-delivery")) {
+        return next({status: 400, message: "Order must have a status of pending, preparing, out-for-delivery, delivered"});
+    } 
+    if (status === "delivered") {
+        return next({ status: 400, message: "A delivered order cannot be changed"});
     }
-    if (status == "delivered") {
-        return next({ status: 404, message: "A delivered order cannot be changed"})
-    }
-}
+    next();
+    
+};
 
 function update (req, res, next) {
     const {orderId} = req.params;
     const {data: {deliverTo, mobileNumber, status, dishes} = {}} = req.body;
     
     res.locals.order = {
-        id: res.locals.orderId,
+        id: res.locals.order.id,
         deliverTo: deliverTo,
         mobileNumber: mobileNumber,
         status: status,
@@ -99,18 +102,16 @@ function list (req, res, next) {
 
 function destroy (req, res, next) {
     const {orderId} = req.params;
-    const index = orders.findIndex((order) => order.id === Number(orderId));
-    console.log(index)
+    const index = orders.findIndex((order) => order.id == orderId);
+    console.log(index);
 
     orders.splice(index, 1);
     res.sendStatus(204);
 };
 
 function destroyValidation (req, res, next) {
-    const {data: {status} = {}} = req.body;
-
-    if (status !== "pending") {
-        return next({status: 404, message: "An order cannot be deleted unless it is pending"});
+    if (res.locals.order.status !== "pending") {
+        return next({status: 400, message: "An order cannot be deleted unless it is pending"});
     }
     next();
 };
